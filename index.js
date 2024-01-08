@@ -3,7 +3,7 @@ const app = express()
 require('dotenv').config()
 const cors = require('cors')
 const cookieParser = require('cookie-parser')
-const { MongoClient, ServerApiVersion } = require('mongodb')
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb')
 const jwt = require('jsonwebtoken')
 const morgan = require('morgan')
 const port = process.env.PORT || 5000;
@@ -21,8 +21,7 @@ app.use(morgan('dev'))
 
 
 const verifyToken = async (req, res, next) => {
-  const token = req.cookies?.token
-  console.log(token)
+  const token = req.cookies?.token;
   if (!token) {
     return res.status(401).send({ message: 'unauthorized access' })
   }
@@ -47,6 +46,22 @@ const client = new MongoClient(process.env.DB_URI, {
 async function run() {
   try {
     const usersCollection = client.db('AirDnD').collection('users');
+    const roomsCollection = client.db('AirDnD').collection('rooms');
+
+    // room related api
+    app.get('/room', async(req,res)=>{
+      const result = await roomsCollection.find().toArray();
+      res.send(result);
+    })
+
+    app.get('/room/:id', async(req,res)=>{
+      const id = req.params.id;
+      const query = { _id : new ObjectId(id)};
+      const result = await roomsCollection.findOne(query);
+      res.send(result);
+    })
+
+
     // auth related api
     app.post('/jwt', async (req, res) => {
       const user = req.body;
@@ -72,20 +87,18 @@ async function run() {
             sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
           })
           .send({ success: true })
-        console.log('Logout successful')
       } catch (err) {
         res.status(500).send(err)
       }
     })
 
-    // Save or modify user email, status in DB
+    // user related api
     app.put('/users/:email', async (req, res) => {
       const email = req.params.email
       const user = req.body
       const query = { email: email }
       const options = { upsert: true }
       const isExist = await usersCollection.findOne(query)
-      console.log('User found?----->', isExist)
       if (isExist) return res.send(isExist)
       const result = await usersCollection.updateOne(
         query,
