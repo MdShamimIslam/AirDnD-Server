@@ -61,6 +61,28 @@ async function run() {
       res.send(result);
     })
 
+    app.post('/room',verifyToken,async(req,res)=>{
+      const room = req.body;
+      const result = await roomsCollection.insertOne(room);
+      res.send(result);
+    });
+
+    app.get('/rooms/:email', async(req,res)=>{
+      const email = req.params.email;
+      // const decodedEmail = req.user.email;
+      // if(email !== decodedEmail){
+      //   return res.status(403).send({message:'forbidden access'})
+      // }
+      const query = {'host.email' : email};
+      const result = await roomsCollection.find(query).toArray();
+      res.send(result)
+    })
+
+    app.get('/user/:email', async(req,res)=>{
+      const email = req.params.email;
+      const result = await usersCollection.findOne({email});
+      res.send(result);
+    })
 
     // auth related api
     app.post('/jwt', async (req, res) => {
